@@ -25,18 +25,8 @@ pub(super) struct RootManifestFile {
 }
 
 impl RootManifestFile {
-    /// Constructs a `RootManifestFile`, checking `file` sits under the table root.
+    /// Constructs a `RootManifestFile` for the snapshot being updated.
     pub(super) fn new(file: FileMeta, read_snapshot: SnapshotRef) -> DeltaResult<Self> {
-        let table_root = read_snapshot.table_root();
-        require!(
-            file.location.scheme() == table_root.scheme()
-                && file.location.host_str() == table_root.host_str()
-                && file.location.path().starts_with(table_root.path()),
-            Error::generic(format!(
-                "manifest location {} is not under the table root {table_root}",
-                file.location
-            ))
-        );
         Ok(RootManifestFile {
             file,
             read_snapshot,
@@ -404,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn new_rejects_a_same_scheme_file_outside_the_table_root() -> DeltaResult<()> {
+    fn new_preserves_an_absolute_file_location() -> DeltaResult<()> {
         let engine = SyncEngine::new_with_store(Arc::new(InMemory::new()));
         let schema = schema_ref! { nullable "id": INTEGER };
         let _ = create_table("memory:///t/", schema, "test")
@@ -412,9 +402,9 @@ mod tests {
             .commit(&engine)?;
         let snapshot = Snapshot::builder_for("memory:///t/").build(&engine)?;
 
-        let outside = manifest_file("memory:///elsewhere/root-v1.parquet", 1024)?;
-        let result = RootManifestFile::new(outside, snapshot);
-        assert_result_error_with_message(result, "not under the table root");
+        let file = manifest_file("s3://bucket/metadata/root-v1.parquet", 1024)?;
+        let manifest = RootManifestFile::new(file.clone(), snapshot)?;
+        assert_eq!(manifest.file, file);
         Ok(())
     }
 
