@@ -82,7 +82,7 @@ async fn test_with_root_manifest_file_produces_a_self_contained_checkpoint_actio
         .iter()
         .find_map(|e| e.get("contentRoot"))
         .expect("contentRoot entry");
-    assert_eq!(content_root["path"], json!(file.location.to_string()));
+    assert_eq!(content_root["path"], json!("metadata/root-v1.parquet"));
     assert_eq!(content_root["sizeInBytes"], json!(1024));
 
     assert!(entries.iter().any(|e| e.get("protocol").is_some()));

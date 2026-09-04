@@ -24,6 +24,15 @@ pub(super) struct RootManifestFile {
     pub(super) read_snapshot: SnapshotRef,
 }
 
+fn table_relative_path(table_root: &url::Url, file: &url::Url) -> DeltaResult<String> {
+    let path = file.path().strip_prefix(table_root.path()).ok_or_else(|| {
+        Error::generic(format!(
+            "manifest location {file} is not under {table_root}"
+        ))
+    })?;
+    Ok(path.trim_start_matches('/').to_string())
+}
+
 impl RootManifestFile {
     /// Constructs a `RootManifestFile`, checking `file` sits under the table root.
     pub(super) fn new(file: FileMeta, read_snapshot: SnapshotRef) -> DeltaResult<Self> {
@@ -92,11 +101,8 @@ impl RootManifestFile {
         }
 
         let version = version_as_i64(commit_version)?;
-        let content_root = ContentRoot::new(
-            self.file.location.to_string(),
-            self.file.size as i64,
-            version,
-        );
+        let path = table_relative_path(self.read_snapshot.table_root(), &self.file.location)?;
+        let content_root = ContentRoot::new(path, self.file.size as i64, version);
 
         Ok(CheckpointAction::new(
             version,
@@ -294,7 +300,7 @@ mod tests {
         )?;
 
         assert_eq!(checkpoint.version(), 1);
-        assert_eq!(checkpoint.path(), manifest.file.location.as_str());
+        assert_eq!(checkpoint.path(), "metadata/root-v1.parquet");
         assert_eq!(
             checkpoint.protocol(),
             snapshot.table_configuration().protocol()
@@ -336,7 +342,7 @@ mod tests {
             &[],
             &[],
         )?;
-        assert_eq!(checkpoint.path(), manifest.file.location.as_str());
+        assert_eq!(checkpoint.path(), "metadata/root-v2.parquet");
         Ok(())
     }
 
