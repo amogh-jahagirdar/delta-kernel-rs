@@ -124,6 +124,8 @@ pub(crate) enum TableFeature {
     IcebergCompatV2,
     /// Iceberg V3 compatibility support
     IcebergCompatV3,
+    /// Iceberg V3 writer compatibility support.
+    IcebergWriterCompatV3,
     /// The Clustered Table feature facilitates the physical clustering of rows
     /// that share similar values on a predefined set of clustering columns.
     #[strum(serialize = "clustering")]
@@ -483,6 +485,16 @@ static ICEBERG_COMPAT_V3_INFO: FeatureInfo = FeatureInfo {
     }),
 };
 
+static ICEBERG_WRITER_COMPAT_V3_INFO: FeatureInfo = FeatureInfo {
+    feature_type: FeatureType::WriterOnly,
+    min_legacy_version: None,
+    feature_requirements: &[],
+    kernel_support: KernelSupport::Supported,
+    enablement_check: EnablementCheck::EnabledIf(|props| {
+        props.enable_iceberg_writer_compat_v3 == Some(true)
+    }),
+};
+
 static CLUSTERED_TABLE_INFO: FeatureInfo = FeatureInfo {
     feature_type: FeatureType::WriterOnly,
     min_legacy_version: None,
@@ -727,6 +739,7 @@ impl TableFeature {
             | TableFeature::IcebergCompatV1
             | TableFeature::IcebergCompatV2
             | TableFeature::IcebergCompatV3
+            | TableFeature::IcebergWriterCompatV3
             | TableFeature::ClusteredTable
             | TableFeature::MaterializePartitionColumns => FeatureType::WriterOnly,
             TableFeature::AllowColumnDefaults => FeatureType::WriterOnly,
@@ -763,6 +776,7 @@ impl TableFeature {
             TableFeature::IcebergCompatV1 => &ICEBERG_COMPAT_V1_INFO,
             TableFeature::IcebergCompatV2 => &ICEBERG_COMPAT_V2_INFO,
             TableFeature::IcebergCompatV3 => &ICEBERG_COMPAT_V3_INFO,
+            TableFeature::IcebergWriterCompatV3 => &ICEBERG_WRITER_COMPAT_V3_INFO,
             TableFeature::ClusteredTable => &CLUSTERED_TABLE_INFO,
             TableFeature::MaterializePartitionColumns => &MATERIALIZE_PARTITION_COLUMNS_INFO,
             TableFeature::AllowColumnDefaults => &ALLOW_COLUMN_DEFAULTS_INFO,
@@ -1114,6 +1128,7 @@ mod tests {
                 TableFeature::IcebergCompatV1 => "icebergCompatV1",
                 TableFeature::IcebergCompatV2 => "icebergCompatV2",
                 TableFeature::IcebergCompatV3 => "icebergCompatV3",
+                TableFeature::IcebergWriterCompatV3 => "icebergWriterCompatV3",
                 TableFeature::ClusteredTable => "clustering",
                 TableFeature::MaterializePartitionColumns => "materializePartitionColumns",
                 TableFeature::CatalogManaged => "catalogManaged",
